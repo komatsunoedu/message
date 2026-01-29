@@ -1,21 +1,28 @@
-/*バラ曲線:極座標の大きさに三角関数を使うことで模様を描ける
+/*バラ曲線:極座標の大きさに三角関数を使うことで描ける
 r=sin(θ*n/d)
 */
 let sakura = [];
-let Num = 100;
+let Num = 250;
+let endImage; 
 
-// --- 変更点：メッセージに \n を入れて改行 ---
+// --- メッセージとアニメーションの設定 ---
 const MSG1 = "３年生の皆さん\nご卒業おめでとうございます🌸";
 const MSG2 = "皆さんの輝かしい未来に\n幸多からんことを！";
+const MSG3 = "次のステージへ!"
 
-// 時間設定（フレーム単位）
-const FADE_FRAMES = 60;  
-const STAY_FRAMES = 120; 
-const BASE_TEXT_SIZE = 36; // 改行して横幅に余裕ができたので、少し大きくしました
-// -------------------------------------------
+const MOVE_FRAMES = 80;   
+const STAY_FRAMES = 120;  
+const BASE_TEXT_SIZE = 36; 
 
-const TIME_PER_MSG = FADE_FRAMES + STAY_FRAMES + FADE_FRAMES;
-const TOTAL_CYCLE = TIME_PER_MSG * 2;
+const TIME_PER_ITEM = MOVE_FRAMES + STAY_FRAMES + MOVE_FRAMES;
+// サイクルを「3つ分（メッセージ2つ + 画像1つ）」に増やす
+const TOTAL_CYCLE = TIME_PER_ITEM * 3; 
+
+// --- 画像の読み込み ---
+function preload() {
+  // 表示したい画像ファイル名に書き換えてください
+  endImage = loadImage('graduate1.png'); 
+}
 
 function setup() {
   createCanvas(600, 400);
@@ -28,67 +35,83 @@ function setup() {
 
 function draw() {
   colorMode(RGB);
-  background(180, 208, 255);
+  background(180, 210, 255);
   colorMode(HSB);
   
+  // 桜は常に降らせる
   for (let i = 0; i < Num; i++) {
     sakura[i].update();
     sakura[i].render();
   }
 
-  displayGraduationMessage();
+  // 循環表示（メッセージと画像）の呼び出し
+  displayCirculatingContent();
 }
 
-function displayGraduationMessage() {
-  push();
+function displayCirculatingContent() {
   let currentFrame = frameCount % TOTAL_CYCLE;
-  let currentScale = 0;
-  let currentMsg = "";
+  let t = currentFrame % TIME_PER_ITEM; // 各アイテムごとの経過時間(0〜TIME_PER_ITEM)
+  let currentY = 0;
 
-  if (currentFrame < TIME_PER_MSG) {
-    currentMsg = MSG1;
-    let t = currentFrame;
-    if (t < FADE_FRAMES) {
-      currentScale = map(t, 0, FADE_FRAMES, 0, 1);
-    } else if (t < FADE_FRAMES + STAY_FRAMES) {
-      currentScale = 1;
-    } else {
-      currentScale = map(t, FADE_FRAMES + STAY_FRAMES, TIME_PER_MSG, 1, 0);
-    }
+  // 共通の動き（y座標）の計算
+  if (t < MOVE_FRAMES) {
+    currentY = map(t, 0, MOVE_FRAMES, height + 150, height / 2); // 下から中央へ
+  } else if (t < MOVE_FRAMES + STAY_FRAMES) {
+    currentY = height / 2; // 中央で停止
   } else {
-    currentMsg = MSG2;
-    let t = currentFrame - TIME_PER_MSG;
-    if (t < FADE_FRAMES) {
-      currentScale = map(t, 0, FADE_FRAMES, 0, 1);
-    } else if (t < FADE_FRAMES + STAY_FRAMES) {
-      currentScale = 1;
-    } else {
-      currentScale = map(t, FADE_FRAMES + STAY_FRAMES, TIME_PER_MSG, 1, 0);
-    }
+    currentY = map(t, MOVE_FRAMES + STAY_FRAMES, TIME_PER_ITEM, height / 2, -200); // 中央から上へ
   }
 
-  if (currentScale > 0.001) {
-    translate(width / 2, height / 2);
-    scale(currentScale);
-    
-    textAlign(CENTER, CENTER);
-    textFont('sans-serif');
-    textStyle(BOLD);
-    fill(255);
-    colorMode(RGB);
-    stroke(340, 50, 50);
-    colorMode(HSB);
-    strokeWeight(4 / currentScale);
-    
-    // 行間を少し広げる設定（必要に応じて調整してください）
-    textLeading(BASE_TEXT_SIZE * 1.2); 
-    
-    textSize(BASE_TEXT_SIZE);
-    text(currentMsg, 0, 0);
+  push();
+  translate(width / 2, currentY);
+
+  if (currentFrame < TIME_PER_ITEM) {
+    // --- 1つ目のメッセージ ---
+    drawMessage(MSG1);
+  } else if (currentFrame < TIME_PER_ITEM * 2) {
+    // --- 2つ目のメッセージ ---
+    drawMessage(MSG2);
+  } else {
+    // --- 画像 ---
+    drawImageContent();
+    drawMessage(MSG3);
   }
   pop();
 }
 
+// 文字を描画する専用の関数
+function drawMessage(txt) {
+  textAlign(CENTER, CENTER);
+  textFont('sans-serif');
+  textStyle(BOLD);
+  fill(255);
+  colorMode(RGB);
+  stroke(255, 100, 150); 
+  strokeWeight(6);
+  colorMode(HSB);
+  textLeading(BASE_TEXT_SIZE * 1.2); 
+  textSize(BASE_TEXT_SIZE);
+  text(txt, 0, 0);
+}
+
+// 画像を描画する専用の関数
+function drawImageContent() {
+  imageMode(CENTER);
+  // 画面に収まるようにサイズ調整
+  let scaleFactor = min(width / endImage.width, (height * 0.7) / endImage.height);
+  let w = endImage.width * scaleFactor;
+  let h = endImage.height * scaleFactor;
+  
+  // 画像の周りに白い枠線をつける（写真風）
+  //fill(255);
+  //noStroke();
+  //rectMode(CENTER);
+  //rect(0, 0, w + 10, h + 10);
+  
+  image(endImage, 0, 0, w, h);
+}
+
+// --- Sakuraクラス（変更なし） ---
 class Sakura {
   constructor() {
     this.n = 4;
@@ -107,7 +130,6 @@ class Sakura {
     this.ySizeAVelocity = this.size / 20;
     this.yScale = 1;
   }
-
   update() {
     this.vecLocation.x = this.xBase + this.xRadius * sin(radians(this.xTheta));
     this.xTheta += this.xaVelocity;
@@ -118,7 +140,6 @@ class Sakura {
       this.vecLocation.y = -this.size;
     }
   }
-
   render() {
     fill(this.hue, this.saturation, this.brightness, this.alpha);
     push();
@@ -137,12 +158,8 @@ class Sakura {
     endShape(CLOSE);
     pop();
   }
-
   calculateH(x) {
-    if (x < 0.8) {
-      return 0;
-    } else {
-      return 0.8 - x;
-    }
+    if (x < 0.8) return 0;
+    else return 0.8 - x;
   }
 }
